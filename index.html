@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+
+<!--
+Title: 2.05 Atlas (Heat Island Mapping) Spring 2021 Senior Design Project
+Author: Cameron Muir
+
+Description: This code is written for the purpose of team 2.05 for
+EE4391 Senior Design at Texas State University, San Marcos, TX. The
+goal of this HTML code is to display a color coded map based on data
+collected in and around San Marcos such as temperature, humidity,
+location, date, and time. All of this data needs to be displayed in
+a user friendly format for the use of quantifiying, measuring, and
+viewing the effects of heat islands in urban areas. This code is not
+to be distributed or sold without the permission of Cameron Muir or
+anyone else on the 2.05 Heat Island Mapping team and our sponsor Texas
+State University.
+
+Many references, tutorials, and examples were viewed, refereced, or
+heavily modified to create this map and a list of all URLs for the code
+are provided below.
+https://docs.mapbox.com/mapbox-gl-js/example/updating-choropleth/
+https://docs.mapbox.com/mapbox-gl-js/example/toggle-layers/
+https://docs.mapbox.com/mapbox-gl-js/example/visualize-population-density/
+https://labs.mapbox.com/education/impact-tools/sheet-mapper/
+
+-->
+<html>
+
+
+  <head>
+  
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v1.9.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v1.9.1/mapbox-gl.css" rel="stylesheet" />
+    <script src='https://npmcdn.com/csv2geojson@latest/csv2geojson.js'></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+
+      /* Popup styling */
+
+      .mapboxgl-popup {
+        padding-bottom: 5px;
+      }
+
+      .mapboxgl-popup-close-button {
+        display: none;
+      }
+
+      .mapboxgl-popup-content {
+        font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+        padding: 0;
+        width: 250px;
+      }
+
+      .mapboxgl-popup-content-wrapper {
+        padding: 1%;
+      }
+
+      .mapboxgl-popup-content h3 {
+        background: rgb(61, 59, 59);
+        text-align: center;
+        color: #fff;
+        margin: 0;
+        display: block;
+        padding: 15px;
+        font-weight: 700;
+        margin-top: -5px;
+      }
+
+      .mapboxgl-popup-content h4 {
+        margin: 0;
+        display: block;
+        padding: 10px 3px 10px 10px;
+        font-weight: 400;
+      }
+
+      .mapboxgl-container {
+        cursor: pointer;
+      }
+
+      .mapboxgl-popup-anchor-top>.mapboxgl-popup-content {
+        margin-top: 3px;
+      }
+
+      .mapboxgl-popup-anchor-top>.mapboxgl-popup-tip {
+        border-bottom-color: rgb(61, 59, 59);
+      }
+
+    </style>
+  </head>
+
+  <body>
+   
+  <style>
+.legend {
+background-color: #fff;
+border-radius: 3px;
+bottom: 30px;
+box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+font: 12px/20px 'Helveticruna Neue', Arial, Helvetica, sans-serif;
+padding: 10px;
+position: absolute;
+right: 10px;
+z-index: 1;
+}
+ 
+.legend h7 {
+margin: 0 0 10px;
+}
+ 
+.legend div span {
+border-radius: 50%;
+display: inline-block;
+height: 10px;
+margin-right: 5px;
+width: 10px;
+}
+</style>
+
+<style>
+#menu {
+background: #fff;
+position: absolute;
+z-index: 1;
+top: 10px;
+right: 10px;
+border-radius: 3px;
+width: 120px;
+border: 1px solid rgba(0, 0, 0, 0.4);
+font-family: 'Open Sans', sans-serif;
+}
+ 
+#menu a {
+font-size: 13px;
+color: #404040;
+display: block;
+margin: 0;
+padding: 0;
+padding: 10px;
+text-decoration: none;
+border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+text-align: center;
+}
+ 
+#menu a:last-child {
+border: none;
+}
+ 
+#menu a:hover {
+background-color: #f8f8f8;
+color: #404040;
+}
+ 
+#menu a.active {
+background-color: #3887be;
+color: #ffffff;
+}
+ 
+#menu a.active:hover {
+background: #3074a4;
+}
+</style>
+ 
+<nav id="menu"></nav>
+
+ 
+<div id="map"></div>
+
+<div id="temperature-legend" class="legend">
+<h7>Temperature</h7>
+<div><span style="background-color: #FF00FF"></span>120&#176F</div>
+<div><span style="background-color: #FF0094"></span>110&#176F</div>
+<div><span style="background-color: #FF002A"></span>100&#176F</div>
+<div><span style="background-color: #FF1E00"></span>90&#176F</div>
+<div><span style="background-color: #FF5000"></span>80&#176F</div>
+<div><span style="background-color: #FF8400"></span>70&#176F</div>
+<div><span style="background-color: #FFB900"></span>60&#176F</div>
+<div><span style="background-color: #FFEE00"></span>50&#176F</div>
+<div><span style="background-color: #B4FF00"></span>40&#176F</div>
+<div><span style="background-color: #4AFF00"></span>30&#176F</div>
+<div><span style="background-color: #00FF21"></span>20&#176F</div>
+<div><span style="background-color: #00FF90"></span>10&#176F</div>
+<div><span style="background-color: #00FFFF"></span>0&#176F</div>
+<div><span style="background-color: #000000"></span>Out Of Range</div>
+</div>
+
+<div id="humidity-legend" class="legend" style="display: none">
+<h7>Humidity</h7>
+<div><span style="background-color: #0000FF"></span>100%</div>
+<div><span style="background-color: #1119FE"></span>90%</div>
+<div><span style="background-color: #2232FE"></span>80%</div>
+<div><span style="background-color: #334BFE"></span>70%</div>
+<div><span style="background-color: #4465FE"></span>60%</div>
+<div><span style="background-color: #557EFE"></span>50%</div>
+<div><span style="background-color: #6697FD"></span>40%</div>
+<div><span style="background-color: #77B1FD"></span>30%</div>
+<div><span style="background-color: #88CAFD"></span>20%</div>
+<div><span style="background-color: #99E3FD"></span>10%</div>
+<div><span style="background-color: #ABFDFD"></span>0%</div>
+<div><span style="background-color: #000000"></span>Out Of Range</div>
+</div>
+
+    
+    <script>
+
+
+      var transformRequest = (url, resourceType) => {
+        var isMapboxRequest =
+          url.slice(8, 22) === "api.mapbox.com" ||
+          url.slice(10, 26) === "tiles.mapbox.com";
+        return {
+          url: isMapboxRequest ?
+            url.replace("?", "?pluginName=sheetMapper&") :
+            url
+        };
+      };
+      //YOUR TURN: add your Mapbox token 
+      mapboxgl.accessToken = 'pk.eyJ1IjoiY2JtOTQiLCJhIjoiY2tmem01NWNnMDR3YjMxbGVoOHNiN3M4MiJ9.uO4rYZ2hIethiMVOYWzadA'; //Mapbox token 
+      var map = new mapboxgl.Map({
+        container: 'map', // container id
+        style: 'mapbox://styles/mapbox/streets-v11', //stylesheet location
+        center: [-97.940844, 29.886516], // starting position
+        zoom: 14, // starting zoom
+        transformRequest: transformRequest
+      });
+      
+      $(document).ready(function() {
+        $.ajax({
+          type: "GET",
+          //YOUR TURN: Replace with csv export link
+          url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRSFsQVsw0WWUZ7KIBe79ckCpvPtClXdQGirmmiyKz3eCBGWAfxwoiLc66MD0P8ISLgyyk7TriOBEIE/pub?output=csv',
+          dataType: "text",
+          success: function(csvData) {
+            makeGeoJSON(csvData);
+          }
+        });
+
+
+
+        function makeGeoJSON(csvData) {
+          csv2geojson.csv2geojson(csvData, {
+            latfield: 'Latitude',
+            lonfield: 'Longitude',
+            delimiter: ','
+          }, function(err, data) {
+            map.on('load', function() {
+            
+            
+           
+              //Temperature Layer
+              map.addLayer({
+                'id': 'Temperature',
+                'type': 'circle',
+                'source': {
+                  'type': 'geojson',
+                  'data': data
+                },
+                'paint': {
+                  
+                  'circle-radius': 5,
+                  'circle-color': [
+                      'interpolate',
+                      ['linear'],
+                      ['to-number', ['get','Temperature'], 1000],
+                      -0.00000001, 'rgba(0,0,0,1)', //Sets any temperature less than 0 as transparent.
+                      0, '#00FFFF',
+                      1, '#00FFF3',
+                      2, '#00FFE8',
+                      3, '#00FFDD',
+                      4, '#00FFD2',
+                      5, '#00FFC7',
+                      6, '#00FFBC',
+                      7, '#00FFB1',
+                      8, '#00FFA6',
+                      9, '#00FF9B',
+                      10, '#00FF90',
+                      11, '#00FF85',
+                      12, '#00FF79',
+                      13, '#00FF6E',
+                      14, '#00FF63',
+                      15, '#00FF58',
+                      16, '#00FF4D',
+                      17, '#00FF42',
+                      18, '#00FF37',
+                      19, '#00FF2C',
+                      20, '#00FF21',
+                      21, '#00FF16',
+                      22, '#00FF0B',
+                      23, '#00FF00',
+                      24, '#0AFF00',
+                      25, '#15FF00',
+                      26, '#1FFF00',
+                      27, '#2AFF00',
+                      28, '#35FF00',
+                      29, '#3FFF00',
+                      30, '#4AFF00',
+                      31, '#55FF00',
+                      32, '#5FFF00',
+                      33, '#6AFF00',
+                      34, '#74FF00',
+                      35, '#7FFF00',
+                      36, '#8AFF00',
+                      37, '#94FF00',
+                      38, '#9FFF00',
+                      39, '#AAFF00',
+                      40, '#B4FF00',
+                      41, '#BFFF00',
+                      42, '#C9FF00',
+                      43, '#D4FF00',
+                      44, '#DFFF00',
+                      45, '#E9FF00',
+                      46, '#F4FF00',
+                      47, '#FFFF00',
+                      48, '#FFF900',
+                      49, '#FFF300',
+                      50, '#FFEE00',
+                      51, '#FFE800',
+                      52, '#FFE300',
+                      53, '#FFDD00',
+                      54, '#FFD700',
+                      55, '#FFD200',
+                      56, '#FFCC00',
+                      57, '#FFC700',
+                      58, '#FFC100',
+                      59, '#FFBC00',
+                      60, '#FFB900',
+                      61, '#FFB600', 
+                      62, '#FFB000',
+                      63, '#FFAB00',
+                      64, '#FFA500',
+                      65, '#FFA000',
+                      66, '#FF9A00',
+                      67, '#FF9400',
+                      68, '#FF8F00',
+                      69, '#FF8900',
+                      70, '#FF8400',
+                      71, '#FF7E00',
+                      72, '#FF7900',
+                      73, '#FF7300',
+                      74, '#FF6E00',
+                      75, '#FF6900',
+                      76, '#FF6400',
+                      77, '#FF5F00',
+                      78, '#FF5A00',
+                      79, '#FF5500',
+                      80, '#FF5000',
+                      81, '#FF4B00',
+                      82, '#FF4600',
+                      83, '#FF4100',
+                      84, '#FF3C00',
+                      85, '#FF3700',
+                      86, '#FF3200',
+                      87, '#FF2D00',
+                      88, '#FF2800',
+                      89, '#FF2300',
+                      90, '#FF1E00',
+                      91, '#FF1900',
+                      92, '#FF1400',
+                      93, '#FF0F00',
+                      94, '#FF0A00',
+                      95, '#FF0500',
+                      96, '#FF0000',
+                      97, '#FF000A',
+                      98, '#FF0015',
+                      99, '#FF001F',
+                      100, '#FF002A',
+                      101, '#FF0035',
+                      102, '#FF003F',
+                      103, '#FF004A',
+                      104, '#FF0055',
+                      105, '#FF005F',
+                      106, '#FF006A',
+                      107, '#FF0074',
+                      108, '#FF007F',
+                      109, '#FF008A',
+                      110, '#FF0094',
+                      111, '#FF009F',
+                      112, '#FF00AA',
+                      113, '#FF00B4',
+                      114, '#FF00BF',
+                      115, '#FF00C9',
+                      116, '#FF00D4',
+                      117, '#FF00DF',
+                      118, '#FF00E9',
+                      119, '#FF00F4',
+                      120, '#FF00FF',
+                      120.00000000001, 'rgba(0,250,250,250)', //Sets any temperature greater than 120 as transparent.
+                    
+                      ]
+                }
+              });
+              
+              //Humidity Layer
+              map.addLayer({
+              	'id': 'Humidity',
+              	'type': 'circle',
+              	'source': {
+                	'type': 'geojson',
+                	'data': data
+              	},
+                'layout': {
+                   'visibility': 'none',
+                },
+              	'paint': {
+                  'circle-radius': 5,
+                  'circle-color': [
+                      'interpolate',
+                      ['linear'],
+                      ['to-number', ['get','Humidity'], 1000],
+                      -0.00000000001, '#000000',
+                      0, '#ABFDFD',
+                      10, '#99E3FD',
+                      20, '#88CAFD',
+                      30, '#77B1FD',
+                      40, '#6697FD',
+                      50, '#557EFE',
+                      60, '#4465FE',
+                      70, '#334BFE',
+                      80, '#2232FE',
+                      90, '#1119FE',
+                      100, '#0000FF',
+                      100.00000000001, '#000000'
+                      
+                      ]
+              	}
+              
+              });
+            
+
+              //Verifies that the Toggle button is correctly colored
+              if(map.getLayoutProperty('Temperature', 'visibility') === 'visibile')
+              {
+                 link.className = 'active';
+              }
+
+
+              // When a click event occurs on a feature in the csvData layer, open a popup at the
+              // location of the feature, with description HTML from its properties.
+              map.on('click', 'Temperature', function(e) {
+                var coordinates = e.features[0].geometry.coordinates.slice();
+
+                //set popup text 
+                //You can adjust the values of the popup to match the headers of your CSV. 
+                // For example: e.features[0].properties.Name is retrieving information from the field Name in the original CSV. 
+                var description = `<h3>` + `Data Details` + `</h3>` + `<h4>` + `<b>` + `Temperature: ` + `</b>` + e.features[0].properties.Temperature + ` &#176F` + `</h4>` + `<h4>` + `<b>` + `Humidity: ` + `</b>` + e.features[0].properties.Humidity + `%` + `</h4>` + `<h4>` + `<b>` + `Date & Time: ` + `</b>` + e.features[0].properties.Date + ` @ ` + e.features[0].properties.Time + `</h4>`;
+
+                // Ensure that if the map is zoomed out such that multiple
+                // copies of the feature are visible, the popup appears
+                // over the copy being pointed to.
+               while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                  coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+
+                //add Popup to map
+
+                new mapboxgl.Popup()
+                  .setLngLat(coordinates)
+                  .setHTML(description)
+                  .addTo(map);
+              });
+            
+// When a click event occurs on a feature in the layer, open a popup at the
+              // location of the feature, with description HTML from its properties.
+              map.on('click', 'Humidity', function(e) {
+                var coordinates = e.features[0].geometry.coordinates.slice();
+
+                //set popup text 
+                //You can adjust the values of the popup to match the headers of your CSV. 
+                // For example: e.features[0].properties.Name is retrieving information from the field Name in the original CSV. 
+                var description = `<h3>` + `Data Details` + `</h3>` + `<h4>` + `<b>` + `Temperature: ` + `</b>` + e.features[0].properties.Temperature + ` &#176F` + `</h4>` + `<h4>` + `<b>` + `Humidity: ` + `</b>` + e.features[0].properties.Humidity + `%` + `</h4>` + `<h4>` + `<b>` + `Date & Time: ` + `</b>` + e.features[0].properties.Date + ` @ ` + e.features[0].properties.Time + `</h4>`;
+
+                // Ensure that if the map is zoomed out such that multiple
+                // copies of the feature are visible, the popup appears
+                // over the copy being pointed to.
+                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                  coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+
+                //add Popup to map
+
+                new mapboxgl.Popup()
+                  .setLngLat(coordinates)
+                  .setHTML(description)
+                  .addTo(map);
+              });
+
+              // Change the cursor to a pointer when the mouse is over the places layer.
+              map.on('mouseenter', 'Temperature', function() {
+                map.getCanvas().style.cursor = 'pointer';
+              });
+              
+              map.on('mouseenter', 'Humidity', function() {
+                map.getCanvas().style.cursor = 'pointer';
+              });
+
+              // Change it back to a pointer when it leaves.
+              map.on('mouseleave', 'places', function() {
+                map.getCanvas().style.cursor = '';
+              });
+
+              //var bbox = turf.bbox(data);
+              //map.fitBounds(bbox, {
+                //padding: 50
+              //});
+
+            });
+
+          });
+        };
+      });
+      
+      // enumerate ids of the layers
+var toggleableLayerIds = ['Temperature', 'Humidity'];
+     //creates a variable to hold the legend id
+var tempLegend = document.getElementById('temperature-legend');
+var humidLegend = document.getElementById('humidity-legend');
+
+var link = document.createElement('a');
+link.href = '#';
+link.className = 'active';
+link.textContent = 'Temperature';
+ 
+link.onclick = function (e) {
+// set up the corresponding toggle button for each layer
+for (var i=0; i < toggleableLayerIds.length; i++) {
+//var id = toggleableLayerIds[i];
+var j;
+if (i === 0){
+j = 1;
+}
+else {
+j = i;
+}
+ 
+var clickedLayer = toggleableLayerIds[i];
+var otherLayer = toggleableLayerIds[j];
+e.preventDefault();
+e.stopPropagation();
+ 
+var visibility = map.getLayoutProperty(clickedLayer, 'visibility');
+var visibility2 = map.getLayoutProperty(otherLayer, 'visibility');
+ 
+// toggle layer visibility by changing the layout object's visibility property
+if (visibility === 'none') {  //Switches layer
+map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+this.className = 'active';
+this.textContent = 'Temperature'
+map.setLayoutProperty(otherLayer, 'visibility', 'none');
+tempLegend.style.display = 'block'; //Switches legend
+humidLegend.style.display = 'none';
+//link.className = 'active';
+} else {                            //Switches Layer
+map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+this.className = 'active';
+this.textContent = 'Humidity';
+map.setLayoutProperty(otherLayer, 'visibility', 'visible');
+tempLegend.style.display = 'none';  //Switches legend
+humidLegend.style.display = 'block';
+//link.className = '';
+}
+}
+};
+ 
+var layers = document.getElementById('menu');
+layers.appendChild(link);
+
+map.addControl(new mapboxgl.NavigationControl(), "top-left");
+    //EOF
+    </script>
+  </body>
+</html>
