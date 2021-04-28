@@ -242,7 +242,7 @@ background: #3074a4;
         $.ajax({
           type: "GET",
           //YOUR TURN: Replace with csv export link
-          url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRSFsQVsw0WWUZ7KIBe79ckCpvPtClXdQGirmmiyKz3eCBGWAfxwoiLc66MD0P8ISLgyyk7TriOBEIE/pub?output=csv',
+          url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRSFsQVsw0WWUZ7KIBe79ckCpvPtClXdQGirmmiyKz3eCBGWAfxwoiLc66MD0P8ISLgyyk7TriOBEIE/pub?gid=0&single=true&output=csv',
           dataType: "text",
           success: function(csvData) {
             makeGeoJSON(csvData);
@@ -271,7 +271,13 @@ background: #3074a4;
                 },
                 'paint': {
                   
-                  'circle-radius': 5,
+                  'circle-radius': {
+		  'base': 1.75,
+		      'stops': [
+			[12, 2],
+			[22, 180]
+		      ]
+		  },
                   'circle-color': [
                       'interpolate',
                       ['linear'],
@@ -416,7 +422,13 @@ background: #3074a4;
                    'visibility': 'none',
                 },
               	'paint': {
-                  'circle-radius': 5,
+                  'circle-radius': {
+		  'base': 1.75,
+		      'stops': [
+			[12, 2],
+			[22, 180]
+		      ]
+		  },
                   'circle-color': [
                       'interpolate',
                       ['linear'],
